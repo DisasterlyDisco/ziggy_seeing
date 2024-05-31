@@ -9,3 +9,4 @@ repository = "https://github.com/DisasterlyDisco/ziggy_seeing"
 license = "GPU 3.0"
 
 [dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
