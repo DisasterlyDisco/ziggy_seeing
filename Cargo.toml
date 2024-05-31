@@ -7,6 +7,5 @@ description = "A CLI tool for getting sightseeing recommendations based on user 
 readme = "README.md"
 repository = "https://github.com/DisasterlyDisco/ziggy_seeing"
 license = "GPU 3.0"
-license-file = "LICENSE"
 
 [dependencies]
