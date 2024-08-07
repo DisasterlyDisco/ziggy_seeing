@@ -19,6 +19,60 @@ struct EntityFile {
     location: Option<String>,
 }
 
+struct Location {
+    latitude: f32,
+    longitude: f32,
+}
+
+impl Location {
+    pub fn from_str(location_string: &str) -> Result<Location, &str> {
+        location_string
+            .split(&[' ', ',', ':', ';'])
+            .map(|coord_string| coord_string.parse::<f32>())
+            .collect::<Result<Vec<f32>, std::num::ParseFloatError>>()
+            .map_err(|_| "One of the coordinates was not a float")
+            .and_then(|coord_vector| {
+                if coord_vector.len() == 2 {
+                    Ok(coord_vector)
+                } else {
+                    Err("Number of coordinates should be two")
+                }
+            })
+            .and_then(|coord_vector| {
+                let location = Location {
+                    latitude: coord_vector[0],
+                    longitude: coord_vector[1],
+                };
+                match (location.latitude_valid(), location.longitude_valid()) {
+                    (true, false) => Err(format!(
+                        "The given longitude [{}] is not within reasonable bounds",
+                        location.longitude
+                    )
+                    .as_str()),
+                    (false, true) => Err(format!(
+                        "The given latitude [{}] is not within reasonable bounds",
+                        location.latitude
+                    )
+                    .as_str()),
+                    (false, false) => Err(format!(
+                        "The given coodinates [{} {}] are not within reasonable bounds",
+                        location.latitude, location.longitude
+                    )
+                    .as_str()),
+                    (true, true) => Ok(location),
+                }
+            })
+    }
+
+    pub fn latitude_valid(&self) -> bool {
+        self.latitude >= -90.0 && self.latitude <= 90.0
+    }
+
+    pub fn longitude_valid(&self) -> bool {
+        self.longitude >= -180.0 && self.longitude <= 180.0
+    }
+}
+
 struct CallingEntity {
     name: String,
     location: String,
