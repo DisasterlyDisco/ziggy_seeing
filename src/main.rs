@@ -19,6 +19,7 @@ struct EntityFile {
     location: Option<String>,
 }
 
+#[derive(Debug)]
 struct Location {
     latitude: f32,
     longitude: f32,
@@ -26,6 +27,10 @@ struct Location {
 
 impl Location {
     pub fn from_str(location_string: &str) -> Result<Location, &str> {
+        Location::from_string(String::from(location_string))
+    }
+
+    pub fn from_string(location_string: String) -> Result<Location, &'static str> {
         location_string
             .split(&[' ', ',', ':', ';'])
             .map(|coord_string| coord_string.parse::<f32>())
@@ -44,21 +49,9 @@ impl Location {
                     longitude: coord_vector[1],
                 };
                 match (location.latitude_valid(), location.longitude_valid()) {
-                    (true, false) => Err(format!(
-                        "The given longitude [{}] is not within reasonable bounds",
-                        location.longitude
-                    )
-                    .as_str()),
-                    (false, true) => Err(format!(
-                        "The given latitude [{}] is not within reasonable bounds",
-                        location.latitude
-                    )
-                    .as_str()),
-                    (false, false) => Err(format!(
-                        "The given coodinates [{} {}] are not within reasonable bounds",
-                        location.latitude, location.longitude
-                    )
-                    .as_str()),
+                    (true, false) => Err("The longitude is not within reasonable bounds"),
+                    (false, true) => Err("The latitude is not within reasonable bounds"),
+                    (false, false) => Err("The coodinates are not within reasonable bounds"),
                     (true, true) => Ok(location),
                 }
             })
@@ -75,7 +68,7 @@ impl Location {
 
 struct CallingEntity {
     name: String,
-    location: String,
+    location: Location,
 }
 
 fn main() {
@@ -89,10 +82,14 @@ fn main() {
 
     let calling_entity = CallingEntity {
         name: cli.name.or(entity_file.name).unwrap_or_else(request_name),
-        location: cli
-            .location
-            .or(entity_file.location)
-            .unwrap_or_else(request_location),
+        location: Location::from_str(
+            cli.location
+                .or(entity_file.location)
+                .unwrap_or_else(request_location)
+                .as_str()
+            )
+            .or_else(request_proper_location_loop)
+            .unwrap(),
     };
 
     println!(
@@ -119,4 +116,15 @@ fn request_string() -> String {
         .expect("Failed to read line");
 
     user_input.trim().to_string()
+}
+
+fn request_proper_location_loop(error_message: &str) -> Result<Location, &str> {
+    println!("The given location could not be parsed: {:?}", error_message);
+    println!("Please input your location as longitude latitude");
+
+    let location_result = Location::from_string(
+        request_string()
+    );
+
+    return location_result.or_else(request_proper_location_loop);
 }
